@@ -1,0 +1,11 @@
+api_platform:
+    defaults:
+        formats:
+            jsonld: [ 'application/ld+json' ]
+            json: [ 'application/json' ]
+        pagination_items_per_page: 30
+    graphql:
+        enabled: false
+    swagger:
+        versions: [3]
+        api_keys: []

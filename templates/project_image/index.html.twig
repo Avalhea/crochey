@@ -1,0 +1,37 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}ProjectImage index{% endblock %}
+
+{% block body %}
+    <h1>ProjectImage index</h1>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>ImageUrl</th>
+                <th>Caption</th>
+                <th>actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for project_image in project_images %}
+            <tr>
+                <td>{{ project_image.id }}</td>
+                <td>{{ project_image.imageUrl }}</td>
+                <td>{{ project_image.caption }}</td>
+                <td>
+                    <a href="{{ path('app_project_image_show', {'id': project_image.id}) }}">show</a>
+                    <a href="{{ path('app_project_image_edit', {'id': project_image.id}) }}">edit</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="4">no records found</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_project_image_new') }}">Create new</a>
+{% endblock %}

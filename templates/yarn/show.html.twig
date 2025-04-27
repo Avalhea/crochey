@@ -1,0 +1,58 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Yarn{% endblock %}
+
+{% block body %}
+    <h1>Yarn</h1>
+
+    <table class="table">
+        <tbody>
+            <tr>
+                <th>Id</th>
+                <td>{{ yarn.id }}</td>
+            </tr>
+            <tr>
+                <th>Name</th>
+                <td>{{ yarn.name }}</td>
+            </tr>
+            <tr>
+                <th>Color</th>
+                <td>{{ yarn.color }}</td>
+            </tr>
+            <tr>
+                <th>Brand</th>
+                <td>{{ yarn.brand }}</td>
+            </tr>
+            <tr>
+                <th>Quantity</th>
+                <td>{{ yarn.quantity }}</td>
+            </tr>
+            <tr>
+                <th>ImageUrl</th>
+                <td>{{ yarn.imageUrl }}</td>
+            </tr>
+            <tr>
+                <th>Notes</th>
+                <td>{{ yarn.notes }}</td>
+            </tr>
+            <tr>
+                <th>AddedAt</th>
+                <td>{{ yarn.addedAt ? yarn.addedAt|date('Y-m-d H:i:s') : '' }}</td>
+            </tr>
+            <tr>
+                <th>FiberContent</th>
+                <td>{{ yarn.FiberContent }}</td>
+            </tr>
+            <tr>
+                <th>Weight</th>
+                <td>{{ yarn.Weight }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_yarn_index') }}">back to list</a>
+
+    <a href="{{ path('app_yarn_edit', {'id': yarn.id}) }}">edit</a>
+
+    {{ include('yarn/_delete_form.html.twig') }}
+{% endblock %}

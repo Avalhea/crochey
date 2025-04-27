@@ -1,0 +1,51 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Yarn index{% endblock %}
+
+{% block body %}
+    <h1>Yarn index</h1>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Name</th>
+                <th>Color</th>
+                <th>Brand</th>
+                <th>Quantity</th>
+                <th>ImageUrl</th>
+                <th>Notes</th>
+                <th>AddedAt</th>
+                <th>FiberContent</th>
+                <th>Weight</th>
+                <th>actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for yarn in yarns %}
+            <tr>
+                <td>{{ yarn.id }}</td>
+                <td>{{ yarn.name }}</td>
+                <td>{{ yarn.color }}</td>
+                <td>{{ yarn.brand }}</td>
+                <td>{{ yarn.quantity }}</td>
+                <td>{{ yarn.imageUrl }}</td>
+                <td>{{ yarn.notes }}</td>
+                <td>{{ yarn.addedAt ? yarn.addedAt|date('Y-m-d H:i:s') : '' }}</td>
+                <td>{{ yarn.FiberContent }}</td>
+                <td>{{ yarn.Weight }}</td>
+                <td>
+                    <a href="{{ path('app_yarn_show', {'id': yarn.id}) }}">show</a>
+                    <a href="{{ path('app_yarn_edit', {'id': yarn.id}) }}">edit</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="11">no records found</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_yarn_new') }}">Create new</a>
+{% endblock %}
