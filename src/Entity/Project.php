@@ -4,11 +4,13 @@ namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
 use App\Enum\Status;
+use App\Enum\Difficulty;
 use App\Repository\ProjectRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ProjectRepository::class)]
 #[ApiResource]
@@ -17,35 +19,49 @@ class Project
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['project:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['project:read'])]
     private ?string $name = null;
 
     #[ORM\Column(type: Types::TEXT)]
+    #[Groups(['project:read'])]
     private ?string $description = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['project:read'])]
     private ?\DateTimeImmutable $started_at = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['project:read'])]
     private ?\DateTimeImmutable $finished_at = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['project:read'])]
     private ?string $imageUrl = null;
 
     /**
      * @var Collection<int, ProjectImage>
      */
     #[ORM\OneToMany(targetEntity: ProjectImage::class, mappedBy: 'project', orphanRemoval: true)]
+    #[Groups(['project:read'])]
     private Collection $ProjectImage;
 
     #[ORM\Column(enumType: Status::class)]
+    #[Groups(['project:read'])]
     private ?Status $Status = null;
+
+    #[ORM\Column(enumType: Difficulty::class)]
+    #[Groups(['project:read'])]
+    private ?Difficulty $Difficulty = null;
 
     public function __construct()
     {
         $this->ProjectImage = new ArrayCollection();
+        $this->Status = Status::NOT_STARTED;
+        $this->Difficulty = Difficulty::BEGINNER;
     }
 
     public function getId(): ?int
@@ -155,4 +171,15 @@ class Project
         return $this;
     }
 
+    public function getDifficulty(): ?Difficulty
+    {
+        return $this->Difficulty;
+    }
+
+    public function setDifficulty(Difficulty $Difficulty): static
+    {
+        $this->Difficulty = $Difficulty;
+
+        return $this;
+    }
 }

@@ -8,6 +8,7 @@ use App\Enum\YarnWeight;
 use App\Repository\YarnRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: YarnRepository::class)]
 #[ApiResource]
@@ -16,33 +17,43 @@ class Yarn
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['yarn:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['yarn:read'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['yarn:read'])]
     private ?string $color = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['yarn:read'])]
     private ?string $brand = null;
 
     #[ORM\Column]
+    #[Groups(['yarn:read'])]
     private ?int $quantity = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['yarn:read'])]
     private ?string $imageUrl = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['yarn:read'])]
     private ?string $notes = null;
 
     #[ORM\Column]
+    #[Groups(['yarn:read'])]
     private ?\DateTimeImmutable $addedAt = null;
 
     #[ORM\Column(enumType: FiberContent::class)]
+    #[Groups(['yarn:read'])]
     private ?FiberContent $FiberContent = null;
 
     #[ORM\Column(enumType: YarnWeight::class)]
+    #[Groups(['yarn:read'])]
     private ?YarnWeight $Weight = null;
 
     public function getId(): ?int
