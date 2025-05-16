@@ -34,18 +34,38 @@ final class ProjectApiController extends AbstractController
     #[Route('', name: 'api_project_create', methods: ['POST'])]
     public function create(Request $request): JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
-        $project = new Project();
-        
-        // Add your property mapping here
-        $project->setName($data['name'] ?? '');
-        // Add other properties...
-        
-        $this->entityManager->persist($project);
-        $this->entityManager->flush();
-        
-        $jsonProject = $this->serializer->serialize($project, 'json', ['groups' => ['project:read']]);
-        return new JsonResponse($jsonProject, Response::HTTP_CREATED, [], true);
+        try {
+            $data = json_decode($request->getContent(), true);
+            $project = new Project();
+            
+            // Add your property mapping here
+            $project->setName($data['name'] ?? '');
+            $project->setDescription($data['description'] ?? '');
+            $project->setStatus(\App\Enum\Status::from($data['Status'] ?? 'Not started'));
+            $project->setDifficulty(\App\Enum\Difficulty::from($data['Difficulty'] ?? 'Beginner'));
+            $project->setImageUrl($data['imageUrl'] ?? null);
+            
+            // Handle dates based on status and form input
+            if (isset($data['started_at']) && $data['started_at']) {
+                $project->setStartedAt(new \DateTimeImmutable($data['started_at']));
+            } else if ($project->getStatus() === \App\Enum\Status::WIP || $project->getStatus() === \App\Enum\Status::FINISHED) {
+                $project->setStartedAt(new \DateTimeImmutable());
+            }
+            
+            if (isset($data['finished_at']) && $data['finished_at']) {
+                $project->setFinishedAt(new \DateTimeImmutable($data['finished_at']));
+            } else if ($project->getStatus() === \App\Enum\Status::FINISHED) {
+                $project->setFinishedAt(new \DateTimeImmutable());
+            }
+            
+            $this->entityManager->persist($project);
+            $this->entityManager->flush();
+            
+            $jsonProject = $this->serializer->serialize($project, 'json', ['groups' => ['project:read']]);
+            return new JsonResponse($jsonProject, Response::HTTP_CREATED, [], true);
+        } catch (\Exception $e) {
+            return new JsonResponse(['error' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
+        }
     }
 
     #[Route('/{id}', name: 'api_project_show', methods: ['GET'])]
@@ -58,16 +78,31 @@ final class ProjectApiController extends AbstractController
     #[Route('/{id}', name: 'api_project_update', methods: ['PUT'])]
     public function update(Request $request, Project $project): JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
-        
-        // Add your property mapping here
-        $project->setName($data['name'] ?? $project->getName());
-        // Update other properties...
-        
-        $this->entityManager->flush();
-        
-        $jsonProject = $this->serializer->serialize($project, 'json', ['groups' => ['project:read']]);
-        return new JsonResponse($jsonProject, Response::HTTP_OK, [], true);
+        try {
+            $data = json_decode($request->getContent(), true);
+            
+            // Update all properties
+            $project->setName($data['name'] ?? $project->getName());
+            $project->setDescription($data['description'] ?? $project->getDescription());
+            $project->setStatus(\App\Enum\Status::from($data['Status'] ?? $project->getStatus()->value));
+            $project->setDifficulty(\App\Enum\Difficulty::from($data['Difficulty'] ?? $project->getDifficulty()->value));
+            $project->setImageUrl($data['imageUrl'] ?? $project->getImageUrl());
+            
+            // Handle dates based on status and form input
+            if (isset($data['started_at'])) {
+                $project->setStartedAt($data['started_at']);
+            }
+            if (isset($data['finished_at'])) {
+                $project->setFinishedAt($data['finished_at']);
+            }
+            
+            $this->entityManager->flush();
+            
+            $jsonProject = $this->serializer->serialize($project, 'json', ['groups' => ['project:read']]);
+            return new JsonResponse($jsonProject, Response::HTTP_OK, [], true);
+        } catch (\Exception $e) {
+            return new JsonResponse(['error' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
+        }
     }
 
     #[Route('/{id}', name: 'api_project_delete', methods: ['DELETE'])]

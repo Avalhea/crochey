@@ -1,6 +1,7 @@
 <script setup>
 import { useRoute } from 'vue-router'
 import { computed } from 'vue'
+import ThemeToggle from './components/ThemeToggle.vue'
 
 const route = useRoute()
 const currentRoute = computed(() => route.path)
@@ -25,6 +26,7 @@ const currentRoute = computed(() => route.path)
         >
           Yarns
         </router-link>
+        <ThemeToggle class="theme-toggle" />
       </nav>
     </header>
     <main>
@@ -34,6 +36,37 @@ const currentRoute = computed(() => route.path)
 </template>
 
 <style>
+:root {
+  /* Light theme variables */
+  --background-color: #f5f5f5;
+  --card-background: #ffffff;
+  --text-color: #2c3e50;
+  --text-secondary: #666666;
+  --border-color: #dddddd;
+  --hover-color: rgba(0, 0, 0, 0.05);
+  --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --primary-color: #42b883;
+  --primary-hover: #3aa876;
+}
+
+/* Dark theme */
+.dark-theme {
+  --background-color: #1a1a1a;
+  --card-background: #2d2d2d;
+  --text-color: #ffffff;
+  --text-secondary: #b0b0b0;
+  --border-color: #404040;
+  --hover-color: rgba(255, 255, 255, 0.05);
+  --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+body {
+  margin: 0;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  transition: background-color 0.3s, color 0.3s;
+}
+
 .app {
   max-width: 1200px;
   margin: 0 auto;
@@ -46,22 +79,23 @@ header {
 }
 
 h1 {
-  color: #42b883;
+  color: var(--primary-color);
   margin-bottom: 20px;
 }
 
 nav {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 16px;
   margin-top: 20px;
 }
 
 .nav-link {
   padding: 8px 16px;
-  border: 2px solid #42b883;
-  background: white;
-  color: #42b883;
+  border: 2px solid var(--primary-color);
+  background: var(--card-background);
+  color: var(--primary-color);
   border-radius: 4px;
   cursor: pointer;
   font-size: 16px;
@@ -70,12 +104,16 @@ nav {
 }
 
 .nav-link:hover {
-  background: #42b883;
+  background: var(--primary-color);
   color: white;
 }
 
 .nav-link.active {
-  background: #42b883;
+  background: var(--primary-color);
   color: white;
+}
+
+.theme-toggle {
+  margin-left: 16px;
 }
 </style>

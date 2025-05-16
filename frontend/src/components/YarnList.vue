@@ -1,9 +1,16 @@
 <!-- src/components/YarnList.vue -->
 <template>
   <div class="page-container">
+    <Notification
+      :show="notification.show"
+      :message="notification.message"
+      :type="notification.type"
+      @close="notification.show = false"
+    />
+    
     <div class="header">
       <h2>Yarn Inventory</h2>
-      <button class="btn-primary" @click="showAddForm = true" v-if="!showAddForm">Add New Yarn</button>
+      <button class="btn-primary" @click="() => { console.log('Add button clicked'); showAddForm = true; }" v-if="!showAddForm">Add New Yarn</button>
     </div>
 
     <div class="filters" v-if="!showAddForm && !editingYarn">
@@ -40,6 +47,7 @@
           <option value="brand">Sort by Brand</option>
           <option value="color">Sort by Color</option>
           <option value="quantity">Sort by Quantity</option>
+          <option value="addedAt">Sort by Most Recent</option>
         </select>
       </div>
     </div>
@@ -107,6 +115,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import YarnForm from './YarnForm.vue'
+import Notification from './Notification.vue'
 
 const DEFAULT_YARN_IMAGE = 'https://placehold.co/400x300/e9ecef/495057?text=Yarn+Image'
 
@@ -120,7 +129,13 @@ const filters = ref({
   weight: '',
   fiber: ''
 })
-const sortBy = ref('name')
+const sortBy = ref('addedAt')
+
+const notification = ref({
+  show: false,
+  message: '',
+  type: 'success'
+})
 
 onMounted(() => {
   console.log('Component mounted, fetching yarns...')
@@ -143,6 +158,9 @@ const filteredAndSortedYarns = computed(() => {
   return filtered.sort((a, b) => {
     if (sortBy.value === 'quantity') {
       return b.quantity - a.quantity
+    }
+    if (sortBy.value === 'addedAt') {
+      return new Date(b.addedAt) - new Date(a.addedAt)
     }
     return (a[sortBy.value] || '').localeCompare(b[sortBy.value] || '')
   })
@@ -182,7 +200,8 @@ const fetchYarns = async () => {
       imageUrl: yarn.imageUrl || '',
       notes: yarn.notes || '',
       Weight: yarn.Weight || '',  // Only use Weight, not weight
-      FiberContent: yarn.FiberContent || ''  // Only use FiberContent, not fiberContent
+      FiberContent: yarn.FiberContent || '',  // Only use FiberContent, not fiberContent
+      addedAt: yarn.addedAt || ''
     }))
     
     console.log('Transformed yarns:', transformedYarns)
@@ -196,8 +215,17 @@ const fetchYarns = async () => {
   }
 }
 
+const showNotification = (message, type = 'success') => {
+  notification.value = {
+    show: true,
+    message,
+    type
+  }
+}
+
 const handleAdd = async (formData) => {
   try {
+    console.log('Adding new yarn with data:', formData)
     const response = await fetch('/api/yarns', {
       method: 'POST',
       headers: {
@@ -206,12 +234,21 @@ const handleAdd = async (formData) => {
       body: JSON.stringify(formData),
     })
     
-    if (!response.ok) throw new Error('Failed to add yarn')
+    if (!response.ok) {
+      console.error('Failed to add yarn. Status:', response.status)
+      const errorData = await response.json()
+      console.error('Error details:', errorData)
+      showNotification('Failed to add yarn. Please try again.', 'error')
+      throw new Error(`Failed to add yarn: ${response.status}`)
+    }
     
+    console.log('Successfully added yarn')
+    showNotification('Yarn successfully added!')
     await fetchYarns()
     showAddForm.value = false
   } catch (e) {
-    error.value = 'Error adding yarn: ' + e.message
+    console.error('Error in handleAdd:', e)
+    showNotification('Error adding yarn: ' + e.message, 'error')
   }
 }
 
@@ -225,12 +262,16 @@ const handleUpdate = async (formData) => {
       body: JSON.stringify(formData),
     })
     
-    if (!response.ok) throw new Error('Failed to update yarn')
+    if (!response.ok) {
+      showNotification('Failed to update yarn. Please try again.', 'error')
+      throw new Error('Failed to update yarn')
+    }
     
+    showNotification('Yarn successfully updated!')
     await fetchYarns()
     editingYarn.value = null
   } catch (e) {
-    error.value = 'Error updating yarn: ' + e.message
+    showNotification('Error updating yarn: ' + e.message, 'error')
   }
 }
 
@@ -242,11 +283,15 @@ const handleDelete = async (yarn) => {
       method: 'DELETE',
     })
     
-    if (!response.ok) throw new Error('Failed to delete yarn')
+    if (!response.ok) {
+      showNotification('Failed to delete yarn. Please try again.', 'error')
+      throw new Error('Failed to delete yarn')
+    }
     
+    showNotification('Yarn successfully deleted!')
     await fetchYarns()
   } catch (e) {
-    error.value = 'Error deleting yarn: ' + e.message
+    showNotification('Error deleting yarn: ' + e.message, 'error')
   }
 }
 </script>
@@ -255,7 +300,7 @@ const handleDelete = async (yarn) => {
 .yarns {
   padding: 20px;
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--background-color);
 }
 
 .header {
@@ -277,10 +322,12 @@ const handleDelete = async (yarn) => {
 .search input {
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   font-size: 16px;
   box-sizing: border-box;
+  background: var(--card-background);
+  color: var(--text-color);
 }
 
 .filter-group {
@@ -292,11 +339,13 @@ const handleDelete = async (yarn) => {
 
 .filter-group select {
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   font-size: 16px;
   width: 100%;
   box-sizing: border-box;
+  background: var(--card-background);
+  color: var(--text-color);
 }
 
 .yarn-grid {
@@ -308,11 +357,11 @@ const handleDelete = async (yarn) => {
 
 .yarn-card {
   position: relative;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 16px;
-  background: white;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  background: var(--card-background);
+  box-shadow: var(--card-shadow);
   min-height: 200px;
   z-index: 1;
 }
@@ -332,10 +381,11 @@ const handleDelete = async (yarn) => {
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
+  color: var(--text-color);
 }
 
 .btn-icon:hover {
-  background: rgba(0,0,0,0.05);
+  background: var(--hover-color);
 }
 
 .yarn-image {
@@ -344,7 +394,7 @@ const handleDelete = async (yarn) => {
   overflow: hidden;
   border-radius: 4px;
   margin-bottom: 16px;
-  background-color: #e9ecef;
+  background-color: var(--hover-color);
 }
 
 .yarn-image img {
@@ -360,7 +410,7 @@ const handleDelete = async (yarn) => {
 }
 
 .yarn-content h3 {
-  color: #42b883;
+  color: var(--primary-color);
   margin: 0 0 12px 0;
   font-size: 1.25rem;
 }
@@ -371,30 +421,30 @@ const handleDelete = async (yarn) => {
 
 .yarn-details p {
   margin: 4px 0;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .yarn-details strong {
-  color: #2c3e50;
+  color: var(--text-color);
 }
 
 .yarn-notes {
   font-style: italic;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.9rem;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--border-color);
 }
 
 h2 {
-  color: #2c3e50;
+  color: var(--text-color);
   margin: 0;
 }
 
 .btn-primary {
   padding: 8px 16px;
-  background: #42b883;
+  background: var(--primary-color);
   color: white;
   border: none;
   border-radius: 4px;
@@ -403,6 +453,6 @@ h2 {
 }
 
 .btn-primary:hover {
-  background: #3aa876;
+  background: var(--primary-hover);
 }
 </style>

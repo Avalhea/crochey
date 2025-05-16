@@ -18,9 +18,6 @@ class YarnType extends AbstractType
             ->add('quantity')
             ->add('imageUrl')
             ->add('notes')
-            ->add('addedAt', null, [
-                'widget' => 'single_text',
-            ])
             ->add('FiberContent')
             ->add('Weight')
         ;

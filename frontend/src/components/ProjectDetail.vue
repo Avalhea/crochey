@@ -40,6 +40,8 @@
             </p>
           </div>
           <p class="detail-description">{{ project.description }}</p>
+          
+          <ProjectImages :project-id="project.id" />
         </div>
       </div>
       <div v-else>Project not found.</div>
@@ -51,6 +53,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ProjectForm from './ProjectForm.vue'
+import ProjectImages from './ProjectImages.vue'
 
 const DEFAULT_PROJECT_IMAGE = 'https://placehold.co/400x300/e9ecef/495057?text=Project+Image'
 const route = useRoute()

@@ -5,24 +5,32 @@ namespace App\Entity;
 use ApiPlatform\Metadata\ApiResource;
 use App\Repository\ProjectImageRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ProjectImageRepository::class)]
-#[ApiResource]
+#[ApiResource(
+    normalizationContext: ['groups' => ['project:read']],
+    denormalizationContext: ['groups' => ['project:write']]
+)]
 class ProjectImage
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['project:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['project:read', 'project:write'])]
     private ?string $imageUrl = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['project:read', 'project:write'])]
     private ?string $caption = null;
 
     #[ORM\ManyToOne(inversedBy: 'ProjectImage')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['project:write'])]
     private ?Project $project = null;
 
     public function getId(): ?int

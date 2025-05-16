@@ -110,7 +110,40 @@ onMounted(() => {
 })
 
 const handleSubmit = () => {
-  emit('submit', { ...form.value })
+  const formData = { ...form.value }
+  
+  // Handle dates based on status
+  if (formData.Status === 'Not started') {
+    formData.started_at = null
+    formData.finished_at = null
+  } else if (formData.Status === 'WIP') {
+    if (!formData.started_at) {
+      formData.started_at = new Date().toISOString().split('T')[0]
+    }
+    formData.finished_at = null
+  } else if (formData.Status === 'Finished') {
+    if (!formData.started_at) {
+      formData.started_at = new Date().toISOString().split('T')[0]
+    }
+    if (!formData.finished_at) {
+      formData.finished_at = new Date().toISOString().split('T')[0]
+    }
+  }
+
+  // Format any existing dates
+  if (formData.started_at) {
+    const date = new Date(formData.started_at)
+    formData.started_at = date.toISOString().split('T')[0]
+  }
+  if (formData.finished_at) {
+    const date = new Date(formData.finished_at)
+    formData.finished_at = date.toISOString().split('T')[0]
+  }
+  
+  // Log the data being sent
+  console.log('Sending project data:', formData)
+  
+  emit('submit', formData)
 }
 </script>
 

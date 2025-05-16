@@ -11,7 +11,9 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: YarnRepository::class)]
-#[ApiResource]
+#[ApiResource(
+    order: ['addedAt' => 'DESC']
+)]
 class Yarn
 {
     #[ORM\Id]
@@ -55,6 +57,13 @@ class Yarn
     #[ORM\Column(enumType: YarnWeight::class)]
     #[Groups(['yarn:read'])]
     private ?YarnWeight $Weight = null;
+
+    public function __construct()
+    {
+        $this->addedAt = new \DateTimeImmutable();
+        $this->FiberContent = FiberContent::WOOL;
+        $this->Weight = YarnWeight::MEDIUM;
+    }
 
     public function getId(): ?int
     {

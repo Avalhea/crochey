@@ -13,7 +13,10 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ProjectRepository::class)]
-#[ApiResource]
+#[ApiResource(
+    normalizationContext: ['groups' => ['project:read']],
+    denormalizationContext: ['groups' => ['project:write'], 'disable_type_enforcement' => true]
+)]
 class Project
 {
     #[ORM\Id]
@@ -23,23 +26,23 @@ class Project
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['project:read'])]
+    #[Groups(['project:read', 'project:write'])]
     private ?string $name = null;
 
     #[ORM\Column(type: Types::TEXT)]
-    #[Groups(['project:read'])]
+    #[Groups(['project:read', 'project:write'])]
     private ?string $description = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['project:read'])]
+    #[Groups(['project:read', 'project:write'])]
     private ?\DateTimeImmutable $started_at = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['project:read'])]
+    #[Groups(['project:read', 'project:write'])]
     private ?\DateTimeImmutable $finished_at = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['project:read'])]
+    #[Groups(['project:read', 'project:write'])]
     private ?string $imageUrl = null;
 
     /**
@@ -50,11 +53,11 @@ class Project
     private Collection $ProjectImage;
 
     #[ORM\Column(enumType: Status::class)]
-    #[Groups(['project:read'])]
+    #[Groups(['project:read', 'project:write'])]
     private ?Status $Status = null;
 
     #[ORM\Column(enumType: Difficulty::class)]
-    #[Groups(['project:read'])]
+    #[Groups(['project:read', 'project:write'])]
     private ?Difficulty $Difficulty = null;
 
     public function __construct()
@@ -62,6 +65,8 @@ class Project
         $this->ProjectImage = new ArrayCollection();
         $this->Status = Status::NOT_STARTED;
         $this->Difficulty = Difficulty::BEGINNER;
+        $this->started_at = null;
+        $this->finished_at = null;
     }
 
     public function getId(): ?int
@@ -98,9 +103,15 @@ class Project
         return $this->started_at;
     }
 
-    public function setStartedAt(\DateTimeImmutable $started_at): static
+    public function setStartedAt($started_at): static
     {
-        $this->started_at = $started_at;
+        if ($started_at === null) {
+            $this->started_at = null;
+        } else if (is_string($started_at)) {
+            $this->started_at = new \DateTimeImmutable($started_at);
+        } else {
+            $this->started_at = $started_at;
+        }
 
         return $this;
     }
@@ -110,9 +121,15 @@ class Project
         return $this->finished_at;
     }
 
-    public function setFinishedAt(?\DateTimeImmutable $finished_at): static
+    public function setFinishedAt($finished_at): static
     {
-        $this->finished_at = $finished_at;
+        if ($finished_at === null) {
+            $this->finished_at = null;
+        } else if (is_string($finished_at)) {
+            $this->finished_at = new \DateTimeImmutable($finished_at);
+        } else {
+            $this->finished_at = $finished_at;
+        }
 
         return $this;
     }

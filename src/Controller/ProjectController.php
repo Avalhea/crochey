@@ -32,7 +32,6 @@ final class ProjectController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $entityManager->persist($project);
             $entityManager->flush();
-
             return $this->redirectToRoute('app_project_index', [], Response::HTTP_SEE_OTHER);
         }
 

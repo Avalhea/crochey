@@ -1,5 +1,12 @@
 <template>
   <div class="page-container">
+    <Notification
+      :show="notification.show"
+      :message="notification.message"
+      :type="notification.type"
+      @close="notification.show = false"
+    />
+    
     <div class="header">
       <h2>Quests</h2>
       <button class="btn-primary" @click="showAddForm = true" v-if="!showAddForm">Add New Project</button>
@@ -102,6 +109,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import ProjectForm from './ProjectForm.vue'
+import Notification from './Notification.vue'
 
 const DEFAULT_PROJECT_IMAGE = 'https://placehold.co/400x300/e9ecef/495057?text=Project+Image'
 
@@ -116,6 +124,12 @@ const filters = ref({
   difficulty: ''
 })
 const sortBy = ref('name')
+
+const notification = ref({
+  show: false,
+  message: '',
+  type: 'success'
+})
 
 const isValidImageUrl = (url) => {
   if (!url) return false
@@ -189,8 +203,17 @@ const fetchProjects = async () => {
   }
 }
 
+const showNotification = (message, type = 'success') => {
+  notification.value = {
+    show: true,
+    message,
+    type
+  }
+}
+
 const handleAdd = async (formData) => {
   try {
+    console.log('Adding new project with data:', formData)
     const response = await fetch('/api/projects', {
       method: 'POST',
       headers: {
@@ -199,12 +222,21 @@ const handleAdd = async (formData) => {
       body: JSON.stringify(formData),
     })
     
-    if (!response.ok) throw new Error('Failed to add project')
+    if (!response.ok) {
+      console.error('Failed to add project. Status:', response.status)
+      const errorData = await response.json()
+      console.error('Error details:', errorData)
+      showNotification('Failed to add project. Please try again.', 'error')
+      throw new Error(`Failed to add project: ${response.status}`)
+    }
     
+    console.log('Successfully added project')
+    showNotification('Project successfully added!')
     await fetchProjects()
     showAddForm.value = false
   } catch (e) {
-    error.value = 'Error adding project: ' + e.message
+    console.error('Error in handleAdd:', e)
+    showNotification('Error adding project: ' + e.message, 'error')
   }
 }
 
@@ -218,12 +250,16 @@ const handleUpdate = async (formData) => {
       body: JSON.stringify(formData),
     })
     
-    if (!response.ok) throw new Error('Failed to update project')
+    if (!response.ok) {
+      showNotification('Failed to update project. Please try again.', 'error')
+      throw new Error('Failed to update project')
+    }
     
+    showNotification('Project successfully updated!')
     await fetchProjects()
     editingProject.value = null
   } catch (e) {
-    error.value = 'Error updating project: ' + e.message
+    showNotification('Error updating project: ' + e.message, 'error')
   }
 }
 
@@ -235,11 +271,15 @@ const handleDelete = async (project) => {
       method: 'DELETE',
     })
     
-    if (!response.ok) throw new Error('Failed to delete project')
+    if (!response.ok) {
+      showNotification('Failed to delete project. Please try again.', 'error')
+      throw new Error('Failed to delete project')
+    }
     
+    showNotification('Project successfully deleted!')
     await fetchProjects()
   } catch (e) {
-    error.value = 'Error deleting project: ' + e.message
+    showNotification('Error deleting project: ' + e.message, 'error')
   }
 }
 

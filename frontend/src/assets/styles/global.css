@@ -5,13 +5,30 @@
 
 /* Global Variables */
 :root {
+  /* Light theme variables */
+  --background-color: #f0e9e9;
+  --container-background: #f1f1f1;
+  --card-background: #ffffff;
+  --text-color: #2c3e50;
+  --text-secondary: #666666;
+  --border-color: #dddddd;
+  --hover-color: rgba(0, 0, 0, 0.05);
+  --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   --primary-color: #42b883;
   --primary-hover: #3aa876;
-  --text-color: #2c3e50;
-  --border-color: #ddd;
-  --background-color: #f5f5f5;
-  --card-shadow: 0 2px 4px rgba(0,0,0,0.1);
   --h3-font: 'Outfit', sans-serif;   
+}
+
+/* Dark theme */
+.dark-theme {
+  --background-color: #1a1a1a;
+  --container-background: #242424;
+  --card-background: #2d2d2d;
+  --text-color: #ffffff;
+  --text-secondary: #b0b0b0;
+  --border-color: #404040;
+  --hover-color: rgba(255, 255, 255, 0.05);
+  --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 @font-face {
@@ -27,22 +44,27 @@
   font-style: normal;
 }
 
-body {
-  background-color: #eee8ee;
+/* Base styles */
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  transition: background-color 0.3s, color 0.3s;
 }
+
 /* Global Reset */
 * {
   font-family: 'JetBrains Mono', monospace;
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
 /* Common Layout */
 .page-container {
   padding: 20px;
   min-height: 100vh;
-  background: var(--background-color);
+  background: var(--container-background);
 }
 
 h1 {
@@ -120,16 +142,17 @@ h3 {
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 16px;
-  background: white;
+  background: var(--card-background);
   box-shadow: var(--card-shadow);
   min-height: 200px;
   z-index: 1;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  color: var(--text-color);
 }
 
 .card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  box-shadow: var(--card-shadow);
 }
 
 .card-actions {
@@ -169,11 +192,11 @@ h3 {
 
 .card-details {
   margin-bottom: 12px;
+  color: var(--text-secondary);
 }
 
 .card-details p {
   margin: 4px 0;
-  color: #666;
 }
 
 .card-details strong {
@@ -205,7 +228,7 @@ h3 {
 }
 
 .btn-icon:hover {
-  background: rgba(0,0,0,0.05);
+  background: var(--hover-color);
 }
 
 /* Typography */
@@ -238,4 +261,16 @@ h2 {
 .debug-info span {
   color: #666;
   font-style: italic;
+}
+
+/* Global form styles */
+input, select, textarea {
+  background-color: var(--card-background);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--primary-color);
+  outline: none;
 } 

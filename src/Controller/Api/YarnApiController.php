@@ -36,16 +36,21 @@ final class YarnApiController extends AbstractController
     #[Route('', name: 'api_yarn_create', methods: ['POST'])]
     public function create(Request $request): JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
-        $yarn = new Yarn();
-        
-        $this->updateYarnFromData($yarn, $data);
-        
-        $this->entityManager->persist($yarn);
-        $this->entityManager->flush();
-        
-        $jsonYarn = $this->serializer->serialize($yarn, 'json', ['groups' => ['yarn:read']]);
-        return new JsonResponse($jsonYarn, Response::HTTP_CREATED, [], true);
+        try {
+            $data = json_decode($request->getContent(), true);
+            $yarn = new Yarn();
+            
+            // Always set added_at for new yarns
+            $yarn->setAddedAt(new \DateTimeImmutable());
+            $this->updateYarnFromData($yarn, $data);
+            $this->entityManager->persist($yarn);
+            $this->entityManager->flush();
+            
+            $jsonYarn = $this->serializer->serialize($yarn, 'json', ['groups' => ['yarn:read']]);
+            return new JsonResponse($jsonYarn, Response::HTTP_CREATED, [], true);
+        } catch (\Exception $e) {
+            return new JsonResponse(['error' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
+        }
     }
 
     #[Route('/{id}', name: 'api_yarn_show', methods: ['GET'])]
@@ -109,11 +114,6 @@ final class YarnApiController extends AbstractController
         
         if (isset($data['FiberContent'])) {
             $yarn->setFiberContent(FiberContent::from($data['FiberContent']));
-        }
-        
-        // Set addedAt only for new yarns
-        if ($yarn->getId() === null) {
-            $yarn->setAddedAt(new \DateTimeImmutable());
         }
     }
 } 

@@ -32,7 +32,6 @@ final class YarnController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $entityManager->persist($yarn);
             $entityManager->flush();
-
             return $this->redirectToRoute('app_yarn_index', [], Response::HTTP_SEE_OTHER);
         }
 

@@ -4,6 +4,7 @@ api_platform:
             jsonld: [ 'application/ld+json' ]
             json: [ 'application/json' ]
         pagination_items_per_page: 30
+        datetime_format: 'Y-m-d'
     graphql:
         enabled: false
     swagger:

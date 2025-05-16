@@ -32,7 +32,6 @@ final class ProjectImageController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $entityManager->persist($projectImage);
             $entityManager->flush();
-
             return $this->redirectToRoute('app_project_image_index', [], Response::HTTP_SEE_OTHER);
         }
 
