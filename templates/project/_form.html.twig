@@ -1,4 +1,76 @@
 {{ form_start(form) }}
-    {{ form_widget(form) }}
-    <button class="btn">{{ button_label|default('Save') }}</button>
+    {{ form_row(form.name) }}
+    {{ form_row(form.description) }}
+    {{ form_row(form.started_at) }}
+    {{ form_row(form.finished_at) }}
+    {{ form_row(form.imageUrl) }}
+    {{ form_row(form.Status) }}
+    
+    <h3>Tags</h3>
+    <div class="tags-collection" 
+        data-index="{{ form.tags|length > 0 ? form.tags|last.vars.name + 1 : 0 }}"
+        data-prototype="{{ form_widget(form.tags.vars.prototype)|e('html_attr') }}">
+        <ul class="tags-list">
+            {% for tag_form in form.tags %}
+                <li class="tag-item">
+                    {{ form_row(tag_form.label) }}
+                    <button type="button" class="btn btn-danger btn-sm remove-tag">Remove</button>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+    <button type="button" class="btn btn-primary add-another-tag">Add a tag</button>
+    
+    <button class="btn mt-3">{{ button_label|default('Save') }}</button>
 {{ form_end(form) }}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to add a new tag form
+    function addTagForm() {
+        // Get the data-prototype
+        const collectionHolder = document.querySelector('.tags-collection');
+        const prototype = collectionHolder.dataset.prototype;
+        
+        // Get the index
+        const index = collectionHolder.dataset.index;
+        
+        // Replace __name__ in the prototype's HTML to the index
+        const newForm = prototype.replace(/__name__/g, index);
+        
+        // Increment the index
+        collectionHolder.dataset.index = parseInt(index) + 1;
+        
+        // Create a new li element and add the form to it
+        const newFormLi = document.createElement('li');
+        newFormLi.className = 'tag-item';
+        newFormLi.innerHTML = newForm;
+        
+        // Add remove button
+        const removeButton = document.createElement('button');
+        removeButton.type = 'button';
+        removeButton.className = 'btn btn-danger btn-sm remove-tag';
+        removeButton.innerText = 'Remove';
+        removeButton.addEventListener('click', function() {
+            newFormLi.remove();
+        });
+        
+        newFormLi.appendChild(removeButton);
+        
+        // Add the new form to the collection
+        document.querySelector('.tags-list').appendChild(newFormLi);
+    }
+    
+    // Add click event to the "Add a tag" button
+    document.querySelector('.add-another-tag').addEventListener('click', function() {
+        addTagForm();
+    });
+    
+    // Add click event to existing "Remove" buttons
+    document.querySelectorAll('.remove-tag').forEach(button => {
+        button.addEventListener('click', function() {
+            this.closest('li').remove();
+        });
+    });
+});
+</script>

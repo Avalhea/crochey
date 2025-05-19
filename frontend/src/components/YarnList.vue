@@ -297,7 +297,7 @@ const handleDelete = async (yarn) => {
 </script>
 
 <style scoped>
-.yarns {
+.page-container {
   padding: 20px;
   min-height: 100vh;
   background: var(--background-color);
@@ -308,6 +308,8 @@ const handleDelete = async (yarn) => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
 .filters {
@@ -316,16 +318,14 @@ const handleDelete = async (yarn) => {
 
 .search {
   margin-bottom: 12px;
-  width: 100%;
 }
 
 .search input {
   width: 100%;
-  padding: 8px 12px;
+  padding: 12px;
   border: 1px solid var(--border-color);
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 16px;
-  box-sizing: border-box;
   background: var(--card-background);
   color: var(--text-color);
 }
@@ -334,125 +334,159 @@ const handleDelete = async (yarn) => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
-  width: 100%;
 }
 
 .filter-group select {
-  padding: 8px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  font-size: 16px;
   width: 100%;
-  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 16px;
   background: var(--card-background);
   color: var(--text-color);
 }
 
-.yarn-grid {
+.item-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
   margin-top: 20px;
 }
 
-.yarn-card {
+.card {
   position: relative;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: 12px;
   background: var(--card-background);
   box-shadow: var(--card-shadow);
-  min-height: 200px;
-  z-index: 1;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  max-height: 600px;
 }
 
-.yarn-actions {
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.card-actions {
   position: absolute;
   top: 12px;
   right: 12px;
   display: flex;
   gap: 8px;
+  z-index: 2;
 }
 
-.btn-icon {
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  color: var(--text-color);
-}
-
-.btn-icon:hover {
-  background: var(--hover-color);
-}
-
-.yarn-image {
+.card-image {
   width: 100%;
   height: 200px;
   overflow: hidden;
-  border-radius: 4px;
-  margin-bottom: 16px;
   background-color: var(--hover-color);
 }
 
-.yarn-image img {
+.card-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: opacity 0.2s ease-in-out;
+  transition: transform 0.3s ease;
 }
 
-.yarn-image img:not([src]), 
-.yarn-image img[src=""] {
-  opacity: 0;
+.card:hover .card-image img {
+  transform: scale(1.05);
 }
 
-.yarn-content h3 {
-  color: var(--primary-color);
+.card-content {
+  padding: 16px;
+}
+
+.card-content h3 {
   margin: 0 0 12px 0;
+  color: var(--primary-color);
   font-size: 1.25rem;
 }
 
-.yarn-details {
-  margin-bottom: 12px;
+.card-details {
+  display: grid;
+  gap: 8px;
 }
 
-.yarn-details p {
-  margin: 4px 0;
+.card-details p {
+  margin: 0;
   color: var(--text-secondary);
+  font-size: 0.95rem;
 }
 
-.yarn-details strong {
-  color: var(--text-color);
-}
-
-.yarn-notes {
-  font-style: italic;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
+.item-notes {
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-style: italic;
 }
 
-h2 {
-  color: var(--text-color);
-  margin: 0;
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .page-container {
+    padding: 10px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .header h2 {
+    margin-bottom: 0;
+  }
+
+  .filter-group {
+    grid-template-columns: 1fr;
+  }
+
+  .item-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .card {
+    max-width: 100%;
+  }
+
+  .card-image {
+    height: 180px;
+  }
 }
 
-.btn-primary {
-  padding: 8px 16px;
-  background: var(--primary-color);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 16px;
-  cursor: pointer;
+/* Tablet Responsive Styles */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .page-container {
+    padding: 15px;
+  }
+
+  .item-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
 }
 
-.btn-primary:hover {
-  background: var(--primary-hover);
+/* Touch Device Optimizations */
+@media (hover: none) {
+  .card:hover {
+    transform: none;
+  }
+
+  .card:active {
+    transform: scale(0.98);
+  }
+
+  .card:hover .card-image img {
+    transform: none;
+  }
+
+  .btn-icon {
+    padding: 8px;
+  }
 }
 </style>

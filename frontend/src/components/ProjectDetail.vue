@@ -29,6 +29,18 @@
         </div>
         <div class="detail-content">
           <h2>{{ project.name }}</h2>
+
+          <div v-if="project.tags && project.tags.length" class="project-tags">
+                <span 
+                  v-for="(tag, index) in project.tags" 
+                  :key="index" 
+                  class="tag"
+                  @click.stop="searchByTag(tag)"
+                >
+                  {{ typeof tag === 'string' ? tag : (tag.label || 'Unnamed tag') }}
+                </span>
+              </div>
+
           <div class="detail-info">
             <p><strong>Status:</strong> {{ project.Status }}</p>
             <p><strong>Difficulty:</strong> {{ project.Difficulty }}</p>

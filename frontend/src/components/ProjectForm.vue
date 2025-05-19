@@ -69,6 +69,35 @@
         >
       </div>
 
+      <div class="form-group">
+        <label for="tags">Tags</label>
+        <div class="tags-input">
+          <div class="tags-list">
+            <span 
+              v-for="(tag, index) in form.tags" 
+              :key="index" 
+              class="tag"
+            >
+              {{ tag.label || tag }}
+              <button 
+                type="button" 
+                class="tag-remove" 
+                @click="removeTag(index)"
+              >×</button>
+            </span>
+          </div>
+          <input 
+            id="tags"
+            v-model="newTag"
+            @keydown.enter.prevent="addTag"
+            @keydown.tab.prevent="addTag"
+            @keydown.comma.prevent="addTag"
+            type="text"
+            placeholder="Add tags (press Enter or Tab)"
+          >
+        </div>
+      </div>
+
       <div class="form-actions">
         <button type="button" class="btn-secondary" @click="$emit('cancel')">Cancel</button>
         <button type="submit" class="btn-primary">{{ editMode ? 'Update' : 'Add' }} Project</button>
@@ -93,6 +122,8 @@ const props = defineProps({
 
 const emit = defineEmits(['submit', 'cancel'])
 
+const newTag = ref('')
+
 const form = ref({
   name: '',
   description: '',
@@ -100,12 +131,44 @@ const form = ref({
   Difficulty: '',
   started_at: '',
   finished_at: '',
-  imageUrl: ''
+  imageUrl: '',
+  tags: []
 })
+
+const addTag = () => {
+  const tagLabel = newTag.value.trim()
+  if (tagLabel) {
+    // Check if tag already exists
+    const exists = form.value.tags.some(tag => 
+      (typeof tag === 'string' && tag === tagLabel) || 
+      (tag.label && tag.label === tagLabel)
+    )
+    
+    if (!exists) {
+      // Add as an object with a label property
+      form.value.tags.push({ label: tagLabel })
+    }
+  }
+  newTag.value = ''
+}
+
+const removeTag = (index) => {
+  form.value.tags = form.value.tags.filter((_, i) => i !== index)
+}
 
 onMounted(() => {
   if (props.editMode && props.project) {
-    form.value = { ...props.project }
+    // Make a deep copy to avoid modifying the original project
+    form.value = {
+      ...props.project,
+      // Ensure tags are properly formatted as objects with label property
+      tags: (props.project.tags || []).map(tag => {
+        if (typeof tag === 'string') {
+          return { label: tag }
+        }
+        return tag
+      })
+    }
   }
 })
 
@@ -139,6 +202,14 @@ const handleSubmit = () => {
     const date = new Date(formData.finished_at)
     formData.finished_at = date.toISOString().split('T')[0]
   }
+  
+  // Ensure tags are in the correct format (objects with label property)
+  formData.tags = formData.tags.map(tag => {
+    if (typeof tag === 'string') {
+      return { label: tag }
+    }
+    return tag
+  })
   
   // Log the data being sent
   console.log('Sending project data:', formData)
@@ -213,5 +284,81 @@ const handleSubmit = () => {
 
 .btn-primary:hover {
   background: #3aa876;
+}
+
+.tags-input {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+}
+
+.tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--primary-color);
+  color: white;
+  border-radius: 16px;
+  font-size: 14px;
+}
+
+.tag-remove {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tag-remove:hover {
+  opacity: 0.8;
+}
+
+.tags-input input {
+  border: none;
+  padding: 4px 0;
+  font-size: 14px;
+  outline: none;
+}
+
+.tags-input input:focus {
+  outline: none;
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .tags-input {
+    padding: 12px;
+  }
+
+  .tag {
+    padding: 6px 12px;
+    font-size: 16px;
+  }
+
+  .tag-remove {
+    padding: 0 4px;
+    font-size: 18px;
+  }
+
+  .tags-input input {
+    padding: 8px 0;
+    font-size: 16px;
+  }
 }
 </style> 

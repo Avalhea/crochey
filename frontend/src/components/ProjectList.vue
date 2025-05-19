@@ -17,7 +17,7 @@
         <input 
           type="text" 
           v-model="filters.search" 
-          placeholder="Search projects..."
+          placeholder="Search by name, description or tag..."
         >
       </div>
       <div class="filter-group">
@@ -40,6 +40,15 @@
           <option value="status">Sort by Status</option>
           <option value="difficulty">Sort by Difficulty</option>
         </select>
+      </div>
+      <!-- Display currently active search tags -->
+      <div class="active-filters" v-if="filters.search">
+        <div class="search-tags">
+          <span class="search-tag">
+            Search: "{{ filters.search }}"
+            <button type="button" class="tag-remove" @click="clearSearch">×</button>
+          </span>
+        </div>
       </div>
     </div>
 
@@ -97,6 +106,16 @@
                   <strong>Completion Date:</strong> {{ formatDate(project.finished_at) }}
                 </p>
               </div>
+              <div v-if="project.tags && project.tags.length" class="project-tags">
+                <span 
+                  v-for="(tag, index) in project.tags" 
+                  :key="index" 
+                  class="tag"
+                  @click.stop="searchByTag(tag)"
+                >
+                  {{ typeof tag === 'string' ? tag : (tag.label || 'Unnamed tag') }}
+                </span>
+              </div>
               <p class="item-notes">{{ project.description }}</p>
             </div>
           </div>
@@ -121,7 +140,8 @@ const editingProject = ref(null)
 const filters = ref({
   search: '',
   status: '',
-  difficulty: ''
+  difficulty: '',
+  tags: []
 })
 const sortBy = ref('name')
 
@@ -145,61 +165,132 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString()
 }
 
+const availableTags = computed(() => {
+  const tagSet = new Set()
+  projects.value.forEach(project => {
+    if (project.tags) {
+      project.tags.forEach(tag => tagSet.add(tag))
+    }
+  })
+  return Array.from(tagSet).sort()
+})
+
+const toggleTagFilter = (tag) => {
+  const index = filters.value.tags.indexOf(tag)
+  if (index === -1) {
+    filters.value.tags.push(tag)
+  } else {
+    filters.value.tags.splice(index, 1)
+  }
+}
+
 const filteredAndSortedProjects = computed(() => {
   let filtered = projects.value.filter(project => {
+    // Search in name, description, and tags
     const matchesSearch = !filters.value.search || 
-      (project.name?.toLowerCase().includes(filters.value.search.toLowerCase()) ||
-      project.description?.toLowerCase().includes(filters.value.search.toLowerCase()))
+      project.name?.toLowerCase().includes(filters.value.search.toLowerCase()) ||
+      project.description?.toLowerCase().includes(filters.value.search.toLowerCase()) ||
+      (project.tags && project.tags.some(tag => {
+        const tagLabel = typeof tag === 'string' ? tag : (tag.label || '');
+        return tagLabel.toLowerCase().includes(filters.value.search.toLowerCase());
+      }));
     
-    const matchesStatus = !filters.value.status || project.Status === filters.value.status
-    const matchesDifficulty = !filters.value.difficulty || project.Difficulty === filters.value.difficulty
+    const matchesStatus = !filters.value.status || project.Status === filters.value.status;
+    const matchesDifficulty = !filters.value.difficulty || project.Difficulty === filters.value.difficulty;
     
-    return matchesSearch && matchesStatus && matchesDifficulty
-  })
+    return matchesSearch && matchesStatus && matchesDifficulty;
+  });
 
   return filtered.sort((a, b) => {
     if (sortBy.value === 'startDate') {
-      return new Date(b.started_at || 0) - new Date(a.started_at || 0)
+      return new Date(b.started_at || 0) - new Date(a.started_at || 0);
     }
-    return (a[sortBy.value] || '').localeCompare(b[sortBy.value] || '')
-  })
+    return (a[sortBy.value] || '').localeCompare(b[sortBy.value] || '');
+  });
 })
+
+const clearSearch = () => {
+  filters.value.search = '';
+  // No need to refetch as we're filtering client-side
+}
 
 const fetchProjects = async () => {
   try {
-    console.log('Fetching projects...')
-    const response = await fetch('/api/projects')
-    console.log('Response status:', response.status)
+    loading.value = true;
+    console.log('Fetching all projects...');
+    
+    // Always fetch all projects and filter client-side
+    const response = await fetch('/api/projects');
+    
+    console.log('Response status:', response.status);
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-    const data = await response.json()
-    console.log('Raw data:', data)
     
-    // Extract the projects from the 'member' property
-    let projectArray = data.member || []
-    console.log('Project array before transform:', projectArray)
+    // Get the raw text first to see what we're dealing with
+    const rawText = await response.text();
+    console.log('Raw response text:', rawText.substring(0, 200) + '...');
+    
+    // Parse it manually to handle potential JSON errors
+    let data;
+    try {
+      data = JSON.parse(rawText);
+      console.log('Parsed data:', data);
+    } catch (jsonError) {
+      console.error('JSON parse error:', jsonError);
+      throw new Error(`Invalid JSON response: ${rawText.substring(0, 100)}...`);
+    }
+    
+    // Handle various response formats
+    let projectArray;
+    if (Array.isArray(data)) {
+      projectArray = data;
+    } else if (data && typeof data === 'object') {
+      if (Array.isArray(data.member)) {
+        projectArray = data.member;
+      } else if (Array.isArray(data.items)) {
+        projectArray = data.items;
+      } else if (data.id) {
+        // Single project response
+        projectArray = [data];
+      } else {
+        console.warn('Unexpected data structure:', data);
+        projectArray = [];
+      }
+    } else {
+      console.warn('Unable to extract projects from response:', data);
+      projectArray = [];
+    }
+    
+    console.log('Project array before transform:', projectArray);
 
-    // Transform the data to ensure consistent property names
-    const transformedProjects = projectArray.map(project => ({
-      id: project.id,
-      name: project.name || '',
-      description: project.description || '',
-      Status: project.Status || '',
-      Difficulty: project.Difficulty || '',
-      started_at: project.started_at || null,
-      finished_at: project.finished_at || null,
-      imageUrl: project.imageUrl || ''
-    }))
+    const transformedProjects = projectArray.map(project => {
+      try {
+        return {
+          id: project.id,
+          name: project.name || '',
+          description: project.description || '',
+          Status: project.Status || '',
+          Difficulty: project.Difficulty || '',
+          started_at: project.started_at || null,
+          finished_at: project.finished_at || null,
+          imageUrl: project.imageUrl || '',
+          tags: Array.isArray(project.tags) ? project.tags : []
+        };
+      } catch (err) {
+        console.error('Error transforming project:', project, err);
+        return null;
+      }
+    }).filter(p => p !== null); // Remove any failed transformations
     
-    console.log('Transformed projects:', transformedProjects)
-    projects.value = transformedProjects
-    console.log('Final projects.value:', projects.value)
+    console.log('Transformed projects:', transformedProjects);
+    projects.value = transformedProjects;
+    console.log('Final projects.value:', projects.value);
   } catch (e) {
-    error.value = 'Error loading projects: ' + e.message
-    console.error('Error:', e)
+    error.value = 'Error loading projects: ' + e.message;
+    console.error('Error during fetch:', e);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
@@ -283,9 +374,289 @@ const handleDelete = async (project) => {
   }
 }
 
+const searchByTag = (tag) => {
+  // Extract the tag label, handling both string and object formats
+  let tagLabel;
+  if (typeof tag === 'string') {
+    tagLabel = tag;
+  } else if (tag && tag.label) {
+    tagLabel = tag.label;
+  } else {
+    console.error('Invalid tag format for search:', tag);
+    return; // Don't search if we can't get a tag label
+  }
+  
+  // Set the search query to the tag label
+  console.log('Searching by tag:', tagLabel);
+  filters.value.search = tagLabel;
+  // No need to refetch as we're filtering client-side
+}
+
 onMounted(() => {
   console.log('Component mounted, fetching projects...')
   fetchProjects()
 })
 </script>
+
+<style scoped>
+.page-container {
+  padding: 20px;
+  min-height: 100vh;
+  background: var(--background-color);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.filters {
+  margin-bottom: 24px;
+}
+
+.search {
+  margin-bottom: 12px;
+}
+
+.search input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 16px;
+  background: var(--card-background);
+  color: var(--text-color);
+}
+
+.filter-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.filter-group select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 16px;
+  background: var(--card-background);
+  color: var(--text-color);
+}
+
+.item-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.card {
+  position: relative;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--card-background);
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.card-actions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 8px;
+  z-index: 2;
+}
+
+.card-image {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  background-color: var(--hover-color);
+}
+
+.card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.card:hover .card-image img {
+  transform: scale(1.05);
+}
+
+.card-content {
+  padding: 16px;
+}
+
+.card-content h3 {
+  margin: 0 0 12px 0;
+  color: var(--primary-color);
+  font-size: 1.25rem;
+}
+
+.card-details {
+  display: grid;
+  gap: 8px;
+}
+
+.card-details p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.item-notes {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .page-container {
+    padding: 10px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .header h2 {
+    margin-bottom: 0;
+  }
+
+  .filter-group {
+    grid-template-columns: 1fr;
+  }
+
+  .item-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .card {
+    max-width: 100%;
+  }
+
+  .card-image {
+    height: 180px;
+  }
+
+  .tag {
+    padding: 6px 12px;
+    font-size: 16px;
+  }
+
+  .project-tags .tag {
+    font-size: 14px;
+    padding: 4px 10px;
+  }
+}
+
+/* Tablet Responsive Styles */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .page-container {
+    padding: 15px;
+  }
+
+  .item-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) {
+  .card:hover {
+    transform: none;
+  }
+
+  .card:active {
+    transform: scale(0.98);
+  }
+
+  .card:hover .card-image img {
+    transform: none;
+  }
+
+  .btn-icon {
+    padding: 8px;
+  }
+}
+
+.active-filters {
+  margin-top: 12px;
+}
+
+.search-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.search-tag {
+  display: inline-flex;
+  align-items: center;
+  background-color: #e7f3ff;
+  color: #0366d6;
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 14px;
+  margin-right: 8px;
+}
+
+.tag-remove {
+  background: none;
+  border: none;
+  color: #0366d6;
+  margin-left: 5px;
+  padding: 0 5px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.tag-remove:hover {
+  color: #034289;
+}
+
+/* Add style for project tags */
+.project-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.tag {
+  display: inline-block;
+  background-color: #f1f8ff;
+  color: #0366d6;
+  border-radius: 12px;
+  padding: 3px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.tag:hover {
+  background-color: #e1efff;
+}
+</style>
 

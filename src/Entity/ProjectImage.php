@@ -5,6 +5,7 @@ namespace App\Entity;
 use ApiPlatform\Metadata\ApiResource;
 use App\Repository\ProjectImageRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ProjectImageRepository::class)]
@@ -32,6 +33,11 @@ class ProjectImage
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['project:write'])]
     private ?Project $project = null;
+    
+    /**
+     * @var File|null
+     */
+    private ?File $imageFile = null;
 
     public function getId(): ?int
     {
@@ -71,6 +77,18 @@ class ProjectImage
     {
         $this->project = $project;
 
+        return $this;
+    }
+    
+    public function getImageFile(): ?File
+    {
+        return $this->imageFile;
+    }
+    
+    public function setImageFile(?File $imageFile): static
+    {
+        $this->imageFile = $imageFile;
+        
         return $this;
     }
 }

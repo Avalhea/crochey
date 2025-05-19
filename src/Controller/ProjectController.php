@@ -30,8 +30,15 @@ final class ProjectController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // Debug tag collection before persist
+            $tagCount = $project->getTags()->count();
+            
             $entityManager->persist($project);
             $entityManager->flush();
+            
+            // Log success message
+            $this->addFlash('success', sprintf('Project created with %d tags.', $tagCount));
+            
             return $this->redirectToRoute('app_project_index', [], Response::HTTP_SEE_OTHER);
         }
 
@@ -56,7 +63,13 @@ final class ProjectController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // Debug tag collection before persist
+            $tagCount = $project->getTags()->count();
+            
             $entityManager->flush();
+            
+            // Log success message
+            $this->addFlash('success', sprintf('Project updated with %d tags.', $tagCount));
 
             return $this->redirectToRoute('app_project_index', [], Response::HTTP_SEE_OTHER);
         }
@@ -76,5 +89,22 @@ final class ProjectController extends AbstractController
         }
 
         return $this->redirectToRoute('app_project_index', [], Response::HTTP_SEE_OTHER);
+    }
+
+    #[Route('/search', name: 'app_project_search', methods: ['GET'])]
+    public function search(Request $request, ProjectRepository $projectRepository): Response
+    {
+        $query = $request->query->get('q', '');
+        
+        if (!empty($query)) {
+            $projects = $projectRepository->searchByNameDescriptionOrTag($query);
+        } else {
+            $projects = $projectRepository->findAll();
+        }
+        
+        return $this->render('project/index.html.twig', [
+            'projects' => $projects,
+            'search_query' => $query,
+        ]);
     }
 }

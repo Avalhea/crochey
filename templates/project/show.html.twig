@@ -35,6 +35,21 @@
                 <th>Status</th>
                 <td>{{ project.Status.value }}</td>
             </tr>
+            <tr>
+                <th>Tags</th>
+                <td>
+                    {% if project.tags|length > 0 %}
+                        <ul>
+                            {% for tag in project.tags %}
+                                <li>{{ tag.label }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>No tags</p>
+                    {% endif %}
+                    <a href="{{ path('app_tag_by_project', {'id': project.id}) }}">Manage Tags</a>
+                </td>
+            </tr>
         </tbody>
     </table>
 

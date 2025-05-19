@@ -5,6 +5,24 @@
 {% block body %}
     <h1>Project index</h1>
 
+    <!-- Search form -->
+    <div class="mb-4">
+        <form action="{{ path('app_project_search') }}" method="get" class="d-flex">
+            <input type="text" name="q" value="{{ search_query|default('') }}" class="form-control me-2" placeholder="Search by name, description or tag...">
+            <button type="submit" class="btn btn-primary">Search</button>
+            {% if search_query is defined and search_query %}
+                <a href="{{ path('app_project_index') }}" class="btn btn-secondary ms-2">Clear</a>
+            {% endif %}
+        </form>
+    </div>
+
+    {% if search_query is defined and search_query %}
+        <div class="alert alert-info">
+            Search results for: <strong>{{ search_query }}</strong>
+            ({{ projects|length }} projects found)
+        </div>
+    {% endif %}
+
     <table class="table">
         <thead>
             <tr>
@@ -15,6 +33,7 @@
                 <th>Finished_at</th>
                 <th>ImageUrl</th>
                 <th>Status</th>
+                <th>Tags</th>
                 <th>actions</th>
             </tr>
         </thead>
@@ -29,13 +48,20 @@
                 <td>{{ project.imageUrl }}</td>
                 <td>{{ project.Status.value }}</td>
                 <td>
+                    {% if project.tags|length > 0 %}
+                        {% for tag in project.tags %}
+                            <span class="badge bg-info">{{ tag.label }}</span>
+                        {% endfor %}
+                    {% endif %}
+                </td>
+                <td>
                     <a href="{{ path('app_project_show', {'id': project.id}) }}">show</a>
                     <a href="{{ path('app_project_edit', {'id': project.id}) }}">edit</a>
                 </td>
             </tr>
         {% else %}
             <tr>
-                <td colspan="8">no records found</td>
+                <td colspan="9">no records found</td>
             </tr>
         {% endfor %}
         </tbody>

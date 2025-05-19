@@ -58,6 +58,24 @@ final class ProjectApiController extends AbstractController
                 $project->setFinishedAt(new \DateTimeImmutable());
             }
             
+            // Handle tags if they are included in the request
+            if (isset($data['tags']) && is_array($data['tags'])) {
+                foreach ($data['tags'] as $tagData) {
+                    if (is_string($tagData)) {
+                        // Handle case where tag is just a string label
+                        $tag = new \App\Entity\Tag();
+                        $tag->setLabel($tagData);
+                        $tag->setProject($project);
+                    } else {
+                        // Handle case where tag is an object with label property
+                        $tag = new \App\Entity\Tag();
+                        $tag->setLabel($tagData['label'] ?? '');
+                        $tag->setProject($project);
+                    }
+                    $this->entityManager->persist($tag);
+                }
+            }
+            
             $this->entityManager->persist($project);
             $this->entityManager->flush();
             
@@ -96,6 +114,30 @@ final class ProjectApiController extends AbstractController
                 $project->setFinishedAt($data['finished_at']);
             }
             
+            // Handle tags if they are included in the request
+            if (isset($data['tags']) && is_array($data['tags'])) {
+                // Remove existing tags
+                foreach ($project->getTags() as $existingTag) {
+                    $this->entityManager->remove($existingTag);
+                }
+                
+                // Add new tags
+                foreach ($data['tags'] as $tagData) {
+                    if (is_string($tagData)) {
+                        // Handle case where tag is just a string label
+                        $tag = new \App\Entity\Tag();
+                        $tag->setLabel($tagData);
+                        $tag->setProject($project);
+                    } else {
+                        // Handle case where tag is an object with label property
+                        $tag = new \App\Entity\Tag();
+                        $tag->setLabel($tagData['label'] ?? '');
+                        $tag->setProject($project);
+                    }
+                    $this->entityManager->persist($tag);
+                }
+            }
+            
             $this->entityManager->flush();
             
             $jsonProject = $this->serializer->serialize($project, 'json', ['groups' => ['project:read']]);
@@ -112,5 +154,20 @@ final class ProjectApiController extends AbstractController
         $this->entityManager->flush();
         
         return new JsonResponse(null, Response::HTTP_NO_CONTENT);
+    }
+
+    #[Route('/search', name: 'api_project_search', methods: ['GET'])]
+    public function search(Request $request): JsonResponse
+    {
+        $query = $request->query->get('q', '');
+        
+        if (!empty($query)) {
+            $projects = $this->projectRepository->searchByNameDescriptionOrTag($query);
+        } else {
+            $projects = $this->projectRepository->findAll();
+        }
+        
+        $data = $this->serializer->serialize($projects, 'json', ['groups' => ['project:read']]);
+        return new JsonResponse($data, Response::HTTP_OK, [], true);
     }
 } 

@@ -4,6 +4,7 @@ namespace App\Controller\Api;
 
 use App\Entity\Project;
 use App\Entity\ProjectImage;
+use App\Service\FileUploader;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -17,17 +18,41 @@ final class ProjectImageApiController extends AbstractController
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
-        private SerializerInterface $serializer
+        private SerializerInterface $serializer,
+        private FileUploader $fileUploader
     ) {}
 
     #[Route('', name: 'api_project_image_create', methods: ['POST'])]
     public function create(Request $request): JsonResponse
     {
         try {
-            $data = json_decode($request->getContent(), true);
+            // Log request details
+            error_log('Content-Type: ' . $request->headers->get('Content-Type'));
+            error_log('Request method: ' . $request->getMethod());
+            error_log('Files: ' . print_r($request->files->all(), true));
+            error_log('Request data: ' . print_r($request->request->all(), true));
             
-            // Extract project ID from IRI
-            $projectId = (int) substr($data['project'], strrpos($data['project'], '/') + 1);
+            $projectId = null;
+            $caption = '';
+            $uploadedFile = $request->files->get('image');
+            
+            // Handle JSON request
+            if ($request->getContentTypeFormat() === 'json') {
+                $data = json_decode($request->getContent(), true);
+                error_log('JSON data: ' . print_r($data, true));
+                
+                $projectId = $data['projectId'] ?? null;
+                $caption = $data['caption'] ?? '';
+            } else {
+                // Handle form data
+                $projectId = $request->request->get('projectId');
+                $caption = $request->request->get('caption', '');
+            }
+            
+            if (!$projectId) {
+                throw new \Exception('Project ID is required');
+            }
+            
             $project = $this->entityManager->getRepository(Project::class)->find($projectId);
             
             if (!$project) {
@@ -35,9 +60,25 @@ final class ProjectImageApiController extends AbstractController
             }
             
             $projectImage = new ProjectImage();
-            $projectImage->setImageUrl($data['imageUrl']);
-            $projectImage->setCaption($data['caption']);
+            $projectImage->setCaption($caption);
             $projectImage->setProject($project);
+            
+            // Handle file upload
+            if ($uploadedFile) {
+                $fileName = $this->fileUploader->upload($uploadedFile);
+                $imageUrl = $request->getSchemeAndHttpHost() . '/uploads/' . $fileName;
+                $projectImage->setImageUrl($imageUrl);
+            } 
+            // Handle URL-based image
+            else if ($request->getContentTypeFormat() === 'json') {
+                $data = json_decode($request->getContent(), true);
+                if (!isset($data['imageUrl'])) {
+                    throw new \Exception('No image URL provided');
+                }
+                $projectImage->setImageUrl($data['imageUrl']);
+            } else {
+                throw new \Exception('No image file or URL provided');
+            }
             
             $this->entityManager->persist($projectImage);
             $this->entityManager->flush();
@@ -49,18 +90,56 @@ final class ProjectImageApiController extends AbstractController
                 true
             );
         } catch (\Exception $e) {
+            error_log('Error in create: ' . $e->getMessage());
+            error_log('Stack trace: ' . $e->getTraceAsString());
             return new JsonResponse(['error' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
         }
     }
 
-    #[Route('/{id}', name: 'api_project_image_update', methods: ['PUT'])]
+    #[Route('/upload', name: 'api_project_image_upload', methods: ['POST'])]
+    public function upload(Request $request): JsonResponse
+    {
+        try {
+            $uploadedFile = $request->files->get('image');
+            
+            if (!$uploadedFile) {
+                throw new \Exception('No image file uploaded');
+            }
+            
+            // Upload the file
+            $fileName = $this->fileUploader->upload($uploadedFile);
+            $imageUrl = $request->getSchemeAndHttpHost() . '/uploads/' . $fileName;
+            
+            return new JsonResponse([
+                'imageUrl' => $imageUrl
+            ], Response::HTTP_OK);
+        } catch (\Exception $e) {
+            return new JsonResponse(['error' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
+        }
+    }
+
+    #[Route('/{id}', name: 'api_project_image_update', methods: ['PUT', 'POST'])]
     public function update(Request $request, ProjectImage $projectImage): JsonResponse
     {
         try {
-            $data = json_decode($request->getContent(), true);
+            // Handle both JSON and form data
+            if ($request->getContentTypeFormat() === 'json') {
+                $data = json_decode($request->getContent(), true);
+                $caption = $data['caption'] ?? $projectImage->getCaption();
+                $imageUrl = $data['imageUrl'] ?? $projectImage->getImageUrl();
+            } else {
+                $caption = $request->request->get('caption', $projectImage->getCaption());
+                $imageUrl = $projectImage->getImageUrl();
+                
+                $uploadedFile = $request->files->get('image');
+                if ($uploadedFile) {
+                    $fileName = $this->fileUploader->upload($uploadedFile);
+                    $imageUrl = $request->getSchemeAndHttpHost() . '/uploads/' . $fileName;
+                }
+            }
             
-            $projectImage->setImageUrl($data['imageUrl']);
-            $projectImage->setCaption($data['caption']);
+            $projectImage->setImageUrl($imageUrl);
+            $projectImage->setCaption($caption);
             
             $this->entityManager->flush();
             
