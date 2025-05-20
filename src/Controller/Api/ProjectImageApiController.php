@@ -22,6 +22,19 @@ final class ProjectImageApiController extends AbstractController
         private FileUploader $fileUploader
     ) {}
 
+    private function deleteImageFile(string $imageUrl): void
+    {
+        try {
+            // Extract filename from URL
+            $filename = basename($imageUrl);
+            if ($filename) {
+                $this->fileUploader->delete($filename);
+            }
+        } catch (\Exception $e) {
+            error_log('Error deleting image file: ' . $e->getMessage());
+        }
+    }
+
     #[Route('', name: 'api_project_image_create', methods: ['POST'])]
     public function create(Request $request): JsonResponse
     {
@@ -122,6 +135,8 @@ final class ProjectImageApiController extends AbstractController
     public function update(Request $request, ProjectImage $projectImage): JsonResponse
     {
         try {
+            $oldImageUrl = $projectImage->getImageUrl();
+            
             // Handle both JSON and form data
             if ($request->getContentTypeFormat() === 'json') {
                 $data = json_decode($request->getContent(), true);
@@ -133,6 +148,11 @@ final class ProjectImageApiController extends AbstractController
                 
                 $uploadedFile = $request->files->get('image');
                 if ($uploadedFile) {
+                    // Delete old image if it exists
+                    if ($oldImageUrl) {
+                        $this->deleteImageFile($oldImageUrl);
+                    }
+                    
                     $fileName = $this->fileUploader->upload($uploadedFile);
                     $imageUrl = $request->getSchemeAndHttpHost() . '/uploads/' . $fileName;
                 }
@@ -158,6 +178,12 @@ final class ProjectImageApiController extends AbstractController
     public function delete(ProjectImage $projectImage): JsonResponse
     {
         try {
+            // Delete the image file before removing the entity
+            $imageUrl = $projectImage->getImageUrl();
+            if ($imageUrl) {
+                $this->deleteImageFile($imageUrl);
+            }
+            
             $this->entityManager->remove($projectImage);
             $this->entityManager->flush();
             

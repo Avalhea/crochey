@@ -221,7 +221,6 @@ const handleSubmit = () => {
 <style scoped>
 .project-form {
   padding: 20px;
-  background: white;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
@@ -233,7 +232,6 @@ const handleSubmit = () => {
 .form-group label {
   display: block;
   margin-bottom: 8px;
-  color: #2c3e50;
   font-weight: 500;
 }
 
@@ -245,6 +243,7 @@ const handleSubmit = () => {
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 16px;
+  color: #9e9e9e;
 }
 
 .form-group textarea {
@@ -289,11 +288,10 @@ const handleSubmit = () => {
 .tags-input {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   padding: 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  background: white;
 }
 
 .tags-list {

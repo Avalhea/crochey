@@ -304,6 +304,11 @@ const showNotification = (message, type = 'success') => {
 
 const handleAdd = async (formData) => {
   try {
+    // Store tags temporarily
+    const tags = formData.tags
+    // Remove tags from the data to be sent
+    delete formData.tags
+
     console.log('Adding new project with data:', formData)
     const response = await fetch('/api/projects', {
       method: 'POST',
@@ -321,7 +326,25 @@ const handleAdd = async (formData) => {
       throw new Error(`Failed to add project: ${response.status}`)
     }
     
-    console.log('Successfully added project')
+    const project = await response.json()
+    console.log('Successfully added project:', project)
+
+    // If we have tags, add them now
+    if (tags && tags.length > 0) {
+      const updateResponse = await fetch(`/api/projects/${project.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ...project, tags }),
+      })
+
+      if (!updateResponse.ok) {
+        console.error('Failed to add tags. Status:', updateResponse.status)
+        showNotification('Project created but failed to add tags.', 'warning')
+      }
+    }
+    
     showNotification('Project successfully added!')
     await fetchProjects()
     showAddForm.value = false
@@ -399,208 +422,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.page-container {
-  padding: 20px;
-  min-height: 100vh;
-  background: var(--background-color);
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.filters {
-  margin-bottom: 24px;
-}
-
-.search {
-  margin-bottom: 12px;
-}
-
-.search input {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  font-size: 16px;
-  background: var(--card-background);
-  color: var(--text-color);
-}
-
-.filter-group {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
-}
-
-.filter-group select {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  font-size: 16px;
-  background: var(--card-background);
-  color: var(--text-color);
-}
-
-.item-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
-  margin-top: 20px;
-}
-
-.card {
-  position: relative;
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  background: var(--card-background);
-  box-shadow: var(--card-shadow);
-  overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.card-actions {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  display: flex;
-  gap: 8px;
-  z-index: 2;
-}
-
-.card-image {
-  width: 100%;
-  height: 200px;
-  overflow: hidden;
-  background-color: var(--hover-color);
-}
-
-.card-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
-}
-
-.card:hover .card-image img {
-  transform: scale(1.05);
-}
-
-.card-content {
-  padding: 16px;
-}
-
-.card-content h3 {
-  margin: 0 0 12px 0;
-  color: var(--primary-color);
-  font-size: 1.25rem;
-}
-
-.card-details {
-  display: grid;
-  gap: 8px;
-}
-
-.card-details p {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 0.95rem;
-}
-
-.item-notes {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-  font-style: italic;
-}
-
-/* Mobile Responsive Styles */
-@media (max-width: 768px) {
-  .page-container {
-    padding: 10px;
-  }
-
-  .header {
-    flex-direction: column;
-    align-items: stretch;
-    text-align: center;
-  }
-
-  .header h2 {
-    margin-bottom: 0;
-  }
-
-  .filter-group {
-    grid-template-columns: 1fr;
-  }
-
-  .item-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-
-  .card {
-    max-width: 100%;
-  }
-
-  .card-image {
-    height: 180px;
-  }
-
-  .tag {
-    padding: 6px 12px;
-    font-size: 16px;
-  }
-
-  .project-tags .tag {
-    font-size: 14px;
-    padding: 4px 10px;
-  }
-}
-
-/* Tablet Responsive Styles */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .page-container {
-    padding: 15px;
-  }
-
-  .item-grid {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  }
-}
-
-/* Touch Device Optimizations */
-@media (hover: none) {
-  .card:hover {
-    transform: none;
-  }
-
-  .card:active {
-    transform: scale(0.98);
-  }
-
-  .card:hover .card-image img {
-    transform: none;
-  }
-
-  .btn-icon {
-    padding: 8px;
-  }
-}
-
+/* Project-specific styles */
 .active-filters {
   margin-top: 12px;
 }
@@ -637,7 +459,7 @@ onMounted(() => {
   color: #034289;
 }
 
-/* Add style for project tags */
+/* Project tags */
 .project-tags {
   display: flex;
   flex-wrap: wrap;
@@ -657,6 +479,19 @@ onMounted(() => {
 
 .tag:hover {
   background-color: #e1efff;
+}
+
+/* Mobile-specific project styles */
+@media (max-width: 768px) {
+  .tag {
+    padding: 6px 12px;
+    font-size: 16px;
+  }
+
+  .project-tags .tag {
+    font-size: 14px;
+    padding: 4px 10px;
+  }
 }
 </style>
 

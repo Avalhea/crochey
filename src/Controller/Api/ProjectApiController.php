@@ -11,6 +11,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Serializer\SerializerInterface;
+use App\Service\FileUploader;
 
 #[Route('/api/projects')]
 final class ProjectApiController extends AbstractController
@@ -19,7 +20,21 @@ final class ProjectApiController extends AbstractController
         private readonly SerializerInterface $serializer,
         private readonly EntityManagerInterface $entityManager,
         private readonly ProjectRepository $projectRepository,
+        private readonly FileUploader $fileUploader,
     ) {
+    }
+
+    private function deleteImageFile(string $imageUrl): void
+    {
+        try {
+            // Extract filename from URL
+            $filename = basename($imageUrl);
+            if ($filename) {
+                $this->fileUploader->delete($filename);
+            }
+        } catch (\Exception $e) {
+            error_log('Error deleting image file: ' . $e->getMessage());
+        }
     }
 
     #[Route('', name: 'api_project_index', methods: ['GET'])]
@@ -57,25 +72,7 @@ final class ProjectApiController extends AbstractController
             } else if ($project->getStatus() === \App\Enum\Status::FINISHED) {
                 $project->setFinishedAt(new \DateTimeImmutable());
             }
-            
-            // Handle tags if they are included in the request
-            if (isset($data['tags']) && is_array($data['tags'])) {
-                foreach ($data['tags'] as $tagData) {
-                    if (is_string($tagData)) {
-                        // Handle case where tag is just a string label
-                        $tag = new \App\Entity\Tag();
-                        $tag->setLabel($tagData);
-                        $tag->setProject($project);
-                    } else {
-                        // Handle case where tag is an object with label property
-                        $tag = new \App\Entity\Tag();
-                        $tag->setLabel($tagData['label'] ?? '');
-                        $tag->setProject($project);
-                    }
-                    $this->entityManager->persist($tag);
-                }
-            }
-            
+        
             $this->entityManager->persist($project);
             $this->entityManager->flush();
             
@@ -99,12 +96,20 @@ final class ProjectApiController extends AbstractController
         try {
             $data = json_decode($request->getContent(), true);
             
+            // Handle image update
+            if (isset($data['imageUrl']) && $data['imageUrl'] !== $project->getImageUrl()) {
+                // Delete old image if it exists
+                if ($project->getImageUrl()) {
+                    $this->deleteImageFile($project->getImageUrl());
+                }
+                $project->setImageUrl($data['imageUrl']);
+            }
+            
             // Update all properties
             $project->setName($data['name'] ?? $project->getName());
             $project->setDescription($data['description'] ?? $project->getDescription());
             $project->setStatus(\App\Enum\Status::from($data['Status'] ?? $project->getStatus()->value));
             $project->setDifficulty(\App\Enum\Difficulty::from($data['Difficulty'] ?? $project->getDifficulty()->value));
-            $project->setImageUrl($data['imageUrl'] ?? $project->getImageUrl());
             
             // Handle dates based on status and form input
             if (isset($data['started_at'])) {
@@ -116,25 +121,45 @@ final class ProjectApiController extends AbstractController
             
             // Handle tags if they are included in the request
             if (isset($data['tags']) && is_array($data['tags'])) {
-                // Remove existing tags
-                foreach ($project->getTags() as $existingTag) {
-                    $this->entityManager->remove($existingTag);
+                // Get existing tags for this project
+                $existingTags = $project->getTags();
+                $existingTagLabels = [];
+                foreach ($existingTags as $tag) {
+                    $existingTagLabels[$tag->getLabel()] = $tag;
                 }
                 
-                // Add new tags
+                // Process new tags
+                $newTags = [];
                 foreach ($data['tags'] as $tagData) {
-                    if (is_string($tagData)) {
-                        // Handle case where tag is just a string label
-                        $tag = new \App\Entity\Tag();
-                        $tag->setLabel($tagData);
-                        $tag->setProject($project);
-                    } else {
-                        // Handle case where tag is an object with label property
-                        $tag = new \App\Entity\Tag();
-                        $tag->setLabel($tagData['label'] ?? '');
-                        $tag->setProject($project);
+                    $tagLabel = is_string($tagData) ? $tagData : ($tagData['label'] ?? '');
+                    
+                    if (empty($tagLabel)) {
+                        continue;
                     }
-                    $this->entityManager->persist($tag);
+                    
+                    // If tag already exists, reuse it
+                    if (isset($existingTagLabels[$tagLabel])) {
+                        $newTags[] = $existingTagLabels[$tagLabel];
+                        unset($existingTagLabels[$tagLabel]); // Remove from existing tags
+                    } else {
+                        // Create new tag
+                        $tag = new \App\Entity\Tag();
+                        $tag->setLabel($tagLabel);
+                        $tag->setProject($project);
+                        $this->entityManager->persist($tag);
+                        $newTags[] = $tag;
+                    }
+                }
+                
+                // Remove tags that are no longer used
+                foreach ($existingTagLabels as $tag) {
+                    $project->removeTag($tag);
+                    $this->entityManager->remove($tag);
+                }
+                
+                // Add all new tags
+                foreach ($newTags as $tag) {
+                    $project->addTag($tag);
                 }
             }
             
@@ -150,10 +175,26 @@ final class ProjectApiController extends AbstractController
     #[Route('/{id}', name: 'api_project_delete', methods: ['DELETE'])]
     public function delete(Project $project): JsonResponse
     {
-        $this->entityManager->remove($project);
-        $this->entityManager->flush();
-        
-        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
+        try {
+            // Delete main project image if it exists
+            if ($project->getImageUrl()) {
+                $this->deleteImageFile($project->getImageUrl());
+            }
+            
+            // Delete all project images
+            foreach ($project->getProjectImage() as $projectImage) {
+                if ($projectImage->getImageUrl()) {
+                    $this->deleteImageFile($projectImage->getImageUrl());
+                }
+            }
+            
+            $this->entityManager->remove($project);
+            $this->entityManager->flush();
+            
+            return new JsonResponse(null, Response::HTTP_NO_CONTENT);
+        } catch (\Exception $e) {
+            return new JsonResponse(['error' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
+        }
     }
 
     #[Route('/search', name: 'api_project_search', methods: ['GET'])]

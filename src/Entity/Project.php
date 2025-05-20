@@ -63,7 +63,7 @@ class Project
     /**
      * @var Collection<int, Tag>
      */
-    #[ORM\OneToMany(targetEntity: Tag::class, mappedBy: 'project', orphanRemoval: true, cascade: ['persist', 'remove'])]
+    #[ORM\OneToMany(targetEntity: Tag::class, mappedBy: 'project', orphanRemoval: true)]
     #[Groups(['project:read', 'project:write'])]
     private Collection $tags;
 

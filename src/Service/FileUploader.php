@@ -17,29 +17,38 @@ class FileUploader
     public function upload(UploadedFile $file): string
     {
         if (!$file->isValid()) {
-            throw new \Exception('Invalid file upload: ' . $file->getErrorMessage());
+            throw new \Exception('Invalid file upload');
         }
 
-        if (!$file->getSize()) {
+        if ($file->getSize() === 0) {
             throw new \Exception('File is empty');
         }
 
-        $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-        $safeFilename = $this->slugger->slug($originalFilename);
-        $fileName = $safeFilename.'-'.uniqid().'.'.$file->guessExtension();
-
-        $targetDir = $this->getTargetDirectory();
-        if (!is_dir($targetDir)) {
-            mkdir($targetDir, 0777, true);
+        $targetDirectory = $this->getTargetDirectory();
+        
+        if (!file_exists($targetDirectory)) {
+            mkdir($targetDirectory, 0777, true);
         }
 
+        $fileName = uniqid() . '.' . $file->guessExtension();
+        
         try {
-            $file->move($targetDir, $fileName);
-        } catch (FileException $e) {
-            throw new \Exception('Failed to upload file: ' . $e->getMessage());
+            $file->move($targetDirectory, $fileName);
+        } catch (\Exception $e) {
+            throw new \Exception('Failed to move uploaded file: ' . $e->getMessage());
         }
-
+        
         return $fileName;
+    }
+
+    public function delete(string $fileName): void
+    {
+        $targetDirectory = $this->getTargetDirectory();
+        $filePath = $targetDirectory . '/' . $fileName;
+        
+        if (file_exists($filePath)) {
+            unlink($filePath);
+        }
     }
 
     public function getTargetDirectory(): string

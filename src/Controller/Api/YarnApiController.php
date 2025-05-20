@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Serializer\SerializerInterface;
+use App\Service\FileUploader;
 
 #[Route('/api/yarns')]
 final class YarnApiController extends AbstractController
@@ -21,6 +22,7 @@ final class YarnApiController extends AbstractController
         private readonly SerializerInterface $serializer,
         private readonly EntityManagerInterface $entityManager,
         private readonly YarnRepository $yarnRepository,
+        private readonly FileUploader $fileUploader,
     ) {
     }
 
@@ -63,23 +65,94 @@ final class YarnApiController extends AbstractController
     #[Route('/{id}', name: 'api_yarn_update', methods: ['PUT'])]
     public function update(Request $request, Yarn $yarn): JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
-        
-        $this->updateYarnFromData($yarn, $data);
-        
-        $this->entityManager->flush();
-        
-        $jsonYarn = $this->serializer->serialize($yarn, 'json', ['groups' => ['yarn:read']]);
-        return new JsonResponse($jsonYarn, Response::HTTP_OK, [], true);
+        try {
+            $data = json_decode($request->getContent(), true);
+            
+            // Handle image update
+            if (isset($data['imageUrl']) && $data['imageUrl'] !== $yarn->getImageUrl()) {
+                // Delete old image if it exists
+                if ($yarn->getImageUrl()) {
+                    $this->deleteImageFile($yarn->getImageUrl());
+                }
+                $yarn->setImageUrl($data['imageUrl']);
+            }
+            
+            $this->updateYarnFromData($yarn, $data);
+            $this->entityManager->flush();
+            
+            $jsonYarn = $this->serializer->serialize($yarn, 'json', ['groups' => ['yarn:read']]);
+            return new JsonResponse($jsonYarn, Response::HTTP_OK, [], true);
+        } catch (\Exception $e) {
+            return new JsonResponse(['error' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
+        }
     }
 
     #[Route('/{id}', name: 'api_yarn_delete', methods: ['DELETE'])]
     public function delete(Yarn $yarn): JsonResponse
     {
-        $this->entityManager->remove($yarn);
-        $this->entityManager->flush();
+        try {
+            // Delete yarn image if it exists
+            if ($yarn->getImageUrl()) {
+                $this->deleteImageFile($yarn->getImageUrl());
+            }
+            
+            $this->entityManager->remove($yarn);
+            $this->entityManager->flush();
+            
+            return new JsonResponse(null, Response::HTTP_NO_CONTENT);
+        } catch (\Exception $e) {
+            return new JsonResponse(['error' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
+        }
+    }
+
+    #[Route('/search', name: 'api_yarn_search', methods: ['GET'])]
+    public function search(Request $request): JsonResponse
+    {
+        $query = $request->query->get('q', '');
         
-        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
+        if (!empty($query)) {
+            $yarns = $this->yarnRepository->searchByNameOrDescription($query);
+        } else {
+            $yarns = $this->yarnRepository->findAll();
+        }
+        
+        $data = $this->serializer->serialize($yarns, 'json', ['groups' => ['yarn:read']]);
+        return new JsonResponse($data, Response::HTTP_OK, [], true);
+    }
+
+    #[Route('/upload', name: 'api_yarn_image_upload', methods: ['POST'])]
+    public function upload(Request $request): JsonResponse
+    {
+        try {
+            $uploadedFile = $request->files->get('image');
+            
+            if (!$uploadedFile) {
+                throw new \Exception('No image file uploaded');
+            }
+            
+            // Upload the file
+            $fileName = $this->fileUploader->upload($uploadedFile);
+            $imageUrl = $request->getSchemeAndHttpHost() . '/uploads/' . $fileName;
+            
+            return new JsonResponse([
+                'imageUrl' => $imageUrl
+            ], Response::HTTP_OK);
+        } catch (\Exception $e) {
+            return new JsonResponse(['error' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
+        }
+    }
+
+    private function deleteImageFile(string $imageUrl): void
+    {
+        try {
+            // Extract filename from URL
+            $filename = basename($imageUrl);
+            if ($filename) {
+                $this->fileUploader->delete($filename);
+            }
+        } catch (\Exception $e) {
+            error_log('Error deleting image file: ' . $e->getMessage());
+        }
     }
 
     private function updateYarnFromData(Yarn $yarn, array $data): void
@@ -98,10 +171,6 @@ final class YarnApiController extends AbstractController
         
         if (isset($data['quantity'])) {
             $yarn->setQuantity((int) $data['quantity']);
-        }
-        
-        if (isset($data['imageUrl'])) {
-            $yarn->setImageUrl($data['imageUrl']);
         }
         
         if (isset($data['notes'])) {

@@ -40,4 +40,14 @@ class YarnRepository extends ServiceEntityRepository
     //            ->getOneOrNullResult()
     //        ;
     //    }
+
+    public function searchByNameOrDescription(string $query): array
+    {
+        return $this->createQueryBuilder('y')
+            ->where('y.name LIKE :query')
+            ->orWhere('y.notes LIKE :query')
+            ->setParameter('query', '%' . $query . '%')
+            ->getQuery()
+            ->getResult();
+    }
 }
