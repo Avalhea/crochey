@@ -71,12 +71,12 @@
       </div>
 
       <div class="form-group">
-        <label for="imageUrl">Image URL</label>
-        <input 
-          id="imageUrl" 
-          v-model="form.imageUrl" 
-          type="url"
-        >
+        <label for="image">Image</label>
+        <ImageUploader
+          v-model="form.imageUrl"
+          type="yarn"
+          @upload-complete="handleImageUpload"
+        />
       </div>
 
       <div class="form-group">
@@ -98,6 +98,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import ImageUploader from './ImageUploader.vue'
 
 const props = defineProps({
   yarn: {
@@ -131,6 +132,10 @@ onMounted(() => {
 
 const handleSubmit = () => {
   emit('submit', { ...form.value })
+}
+
+const handleImageUpload = (url) => {
+  // Handle image upload completion
 }
 </script>
 

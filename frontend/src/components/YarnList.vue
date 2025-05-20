@@ -254,6 +254,18 @@ const handleAdd = async (formData) => {
 
 const handleUpdate = async (formData) => {
   try {
+    // First, fetch the complete yarn data
+    const fetchResponse = await fetch(`/api/yarns/${editingYarn.value.id}`)
+    if (!fetchResponse.ok) {
+      showNotification('Failed to fetch yarn data. Please try again.', 'error')
+      throw new Error('Failed to fetch yarn data')
+    }
+    const completeYarn = await fetchResponse.json()
+    
+    // Update editingYarn with complete data
+    editingYarn.value = completeYarn
+    
+    // Then proceed with the update
     const response = await fetch(`/api/yarns/${editingYarn.value.id}`, {
       method: 'PUT',
       headers: {

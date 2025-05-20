@@ -5,7 +5,10 @@
         <button class="btn-icon" @click="$router.back()" title="Back">←</button>
         <h2>{{ project?.name || 'Project Details' }}</h2>
       </div>
-      <button class="btn-primary" @click="editingProject = project" v-if="!editingProject">Edit Project</button>
+      <div class="header-actions">
+        <button class="btn-primary btn-danger" @click="handleDelete" v-if="!editingProject">Delete Project</button>
+        <button class="btn-primary" @click="editingProject = project" v-if="!editingProject">Edit Project</button>
+      </div>
     </div>
 
     <ProjectForm 
@@ -122,6 +125,22 @@ const handleUpdate = async (formData) => {
   }
 }
 
+const handleDelete = async () => {
+  if (!confirm('Are you sure you want to delete this project?')) return
+  
+  try {
+    const response = await fetch(`/api/projects/${project.value.id}`, {
+      method: 'DELETE',
+    })
+    
+    if (!response.ok) throw new Error('Failed to delete project')
+    
+    router.push('/projects')
+  } catch (e) {
+    error.value = 'Error deleting project: ' + e.message
+  }
+}
+
 onMounted(fetchProject)
 </script>
 
@@ -130,6 +149,20 @@ onMounted(fetchProject)
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-primary.btn-danger {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-primary.btn-danger:hover {
+  background: #c82333;
 }
 
 .detail-view {

@@ -356,6 +356,18 @@ const handleAdd = async (formData) => {
 
 const handleUpdate = async (formData) => {
   try {
+    // First, fetch the complete project data
+    const fetchResponse = await fetch(`/api/projects/${editingProject.value.id}`)
+    if (!fetchResponse.ok) {
+      showNotification('Failed to fetch project data. Please try again.', 'error')
+      throw new Error('Failed to fetch project data')
+    }
+    const completeProject = await fetchResponse.json()
+    
+    // Update editingProject with complete data
+    editingProject.value = completeProject
+    
+    // Then proceed with the update
     const response = await fetch(`/api/projects/${editingProject.value.id}`, {
       method: 'PUT',
       headers: {

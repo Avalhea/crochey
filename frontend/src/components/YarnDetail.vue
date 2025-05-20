@@ -5,7 +5,10 @@
         <button class="btn-icon" @click="$router.back()" title="Back">←</button>
         <h2>{{ yarn?.name || 'Yarn Details' }}</h2>
       </div>
-      <button class="btn-primary" @click="editingYarn = yarn" v-if="!editingYarn">Edit Yarn</button>
+      <div class="header-actions">
+        <button class="btn-primary btn-danger" @click="handleDelete" v-if="!editingYarn">Delete Yarn</button>
+        <button class="btn-primary" @click="editingYarn = yarn" v-if="!editingYarn">Edit Yarn</button>
+      </div>
     </div>
 
     <YarnForm 
@@ -99,6 +102,22 @@ const handleUpdate = async (formData) => {
   }
 }
 
+const handleDelete = async () => {
+  if (!confirm('Are you sure you want to delete this yarn?')) return
+  
+  try {
+    const response = await fetch(`/api/yarns/${yarn.value.id}`, {
+      method: 'DELETE',
+    })
+    
+    if (!response.ok) throw new Error('Failed to delete yarn')
+    
+    router.push('/yarns')
+  } catch (e) {
+    error.value = 'Error deleting yarn: ' + e.message
+  }
+}
+
 onMounted(fetchYarn)
 </script>
 
@@ -107,6 +126,20 @@ onMounted(fetchYarn)
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-primary.btn-danger {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-primary.btn-danger:hover {
+  background: #c82333;
 }
 
 .detail-view {
