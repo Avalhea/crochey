@@ -25,8 +25,6 @@ Crochey is a modern web application for project management, featuring a clean an
 - Light/Dark theme support
 - Responsive design for all devices
 - Smooth animations and transitions
-- Detailed notes and descriptions management
-- Modern interface with custom typography (JetBrains Mono, Outfit, etc.)
 - Complete RESTful API for frontend/backend communication
 - Secure and documented API endpoints
 
@@ -63,8 +61,6 @@ Crochey est une application web moderne de gestion de projets, proposant une int
 - Support des thèmes clair/sombre
 - Design responsive pour tous les appareils
 - Animations fluides et transitions élégantes
-- Gestion des notes et descriptions détaillées
-- Interface moderne avec typographie personnalisée (JetBrains Mono, Outfit, etc.)
 - API RESTful complète pour la communication frontend/backend
 - Endpoints API sécurisés et documentés
 
